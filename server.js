@@ -122,7 +122,7 @@ server.on("connection", socket => {
         }
 
         /* =========================
-           OYUNCU DURUMU
+           OYUNCU DURUMU (HP ve Bayılma Dahil)
         ========================= */
         if (data.type === "state") {
             if (!socket.room) return;
@@ -135,7 +135,8 @@ server.on("connection", socket => {
                 x: Number(data.x) || 0,
                 y: Number(data.y) || 0,
                 angle: Number(data.angle) || 0,
-                shooting: !!data.shooting
+                hp: Number(data.hp) !== undefined ? Number(data.hp) : 100,
+                isDowned: !!data.isDowned
             }, socket);
 
             return;
@@ -161,23 +162,6 @@ server.on("connection", socket => {
         }
 
         /* =========================
-           HASAR
-        ========================= */
-        if (data.type === "damage") {
-            if (!socket.room) return;
-            const room = rooms.get(socket.room);
-            if (!room) return;
-
-            broadcast(room, {
-                type: "playerDamage",
-                playerId: socket.playerId,
-                damage: Number(data.damage) || 0
-            }, socket);
-
-            return;
-        }
-
-        /* =========================
            ZOMBİ SENKRONİZASYONU
         ========================= */
         if (data.type === "zombieSync") {
@@ -189,23 +173,6 @@ server.on("connection", socket => {
                 type: "zombieSync",
                 zombies: data.zombies || []
             }, socket);
-
-            return;
-        }
-
-        /* =========================
-           SOHBET (CHAT)
-        ========================= */
-        if (data.type === "chat") {
-            if (!socket.room) return;
-            const room = rooms.get(socket.room);
-            if (!room) return;
-
-            broadcast(room, {
-                type: "chatMessage",
-                playerId: socket.playerId,
-                message: String(data.message || "").substring(0, 80)
-            });
 
             return;
         }
@@ -229,27 +196,17 @@ server.on("connection", socket => {
             players: room.players.length
         });
 
-        console.log("Oyuncu ayrıldı:", code);
-
         if (room.players.length === 0) {
             rooms.delete(code);
-            console.log("Oda silindi:", code);
         }
     });
 });
 
-/* =========================
-   SUNUCU BAŞLADI
-========================= */
 server.on("listening", () => {
-    console.log("Zombie City multiplayer server başladı.");
-    console.log("Port: " + PORT);
+    console.log("Zombie City server başladı. Port: " + PORT);
 });
 
-/* =========================
-   HATA
-========================= */
 server.on("error", error => {
     console.error("Sunucu hatası:", error.message);
 });
-          
+                          
