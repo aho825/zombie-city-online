@@ -126,14 +126,12 @@ server.on("connection", socket => {
             return;
         }
 
-        /* HAZIR BUTONU BİLDİRİMİ */
         if (data.type === "playerReady") {
             if (!socket.room) return;
             const room = rooms.get(socket.room);
             if (!room) return;
 
             socket.isReady = true;
-
             const readyCount = room.players.filter(p => p.isReady).length;
 
             room.players.forEach(p => {
@@ -167,4 +165,4 @@ server.on("connection", socket => {
 });
 
 server.on("listening", () => console.log("Sunucu başladı. Port: " + PORT));
-                
+            
