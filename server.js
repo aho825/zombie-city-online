@@ -29,6 +29,7 @@ function broadcast(room, data, except = null) {
 server.on("connection", socket => {
     socket.room = null;
     socket.playerId = null;
+    socket.isReady = false;
 
     send(socket, { type: "connected", message: "Zombie City sunucusuna bağlandın." });
 
@@ -42,6 +43,7 @@ server.on("connection", socket => {
             rooms.set(code, { players: [socket] });
             socket.room = code;
             socket.playerId = 1;
+            socket.isReady = false;
             send(socket, { type: "roomCreated", code, playerId: 1, players: 1 });
             return;
         }
@@ -61,6 +63,7 @@ server.on("connection", socket => {
             room.players.push(socket);
             socket.room = code;
             socket.playerId = 2;
+            socket.isReady = false;
 
             send(socket, { type: "joinedRoom", code, playerId: 2, players: 2 });
             broadcast(room, { type: "playerJoined", playerId: 2, players: 2 });
@@ -122,6 +125,33 @@ server.on("connection", socket => {
             });
             return;
         }
+
+        /* HAZIR BUTONU BİLDİRİMİ */
+        if (data.type === "playerReady") {
+            if (!socket.room) return;
+            const room = rooms.get(socket.room);
+            if (!room) return;
+
+            socket.isReady = true;
+
+            const readyCount = room.players.filter(p => p.isReady).length;
+
+            room.players.forEach(p => {
+                send(p, {
+                    type: "readyStatusUpdate",
+                    readyCount: readyCount,
+                    totalPlayers: room.players.length
+                });
+            });
+
+            if (room.players.length >= 2 && readyCount >= 2) {
+                room.players.forEach(p => p.isReady = false);
+                room.players.forEach(p => {
+                    send(p, { type: "startRestartCountdown" });
+                });
+            }
+            return;
+        }
     });
 
     socket.on("close", () => {
@@ -137,4 +167,4 @@ server.on("connection", socket => {
 });
 
 server.on("listening", () => console.log("Sunucu başladı. Port: " + PORT));
-            
+                
